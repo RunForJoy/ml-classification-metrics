@@ -1,0 +1,7 @@
+kagglehub
+kaggle
+six
+pandas
+numpy
+ipykernel
+scikit-learn
