@@ -1,3 +1,6 @@
+checkpoints/
+base/
+sketch.ipynb
 datasets
 __pycache__
 .venv

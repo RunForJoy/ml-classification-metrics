@@ -5,3 +5,7 @@ pandas
 numpy
 ipykernel
 scikit-learn
+category_encoders
+scipy
+matplotlib
+seaborn
