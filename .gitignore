@@ -2,7 +2,12 @@
 checkpoints/
 base/
 sketch.ipynb
-datasets
+# разрешаем git заходить в папку datasets
+# игнорируем всё содержимое внутри папки
+datasets/*
+# делаем исключение для словаря данных
+!datasets/Carvana_Data_Dictionary.txt
+
 __pycache__
 .venv
 don-t-get-kicked-pipeline-improved.ipynb

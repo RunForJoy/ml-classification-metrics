@@ -442,3 +442,19 @@ def plot_models_roc_curves(
         height=600,
     )
     return fig
+
+
+def highlight_family_winners(df):
+    # извлекаю базовое имя семейства моделей для внутренней группировки
+    families = df["Алгоритм"].str.split(r"_|\s\(").str[0]
+
+    # нахожу максимальный балл джини внутри каждого семейства
+    max_gini = df.groupby(families)["Gini Score"].transform("max")
+    is_winner = df["Gini Score"] == max_gini
+
+    # создаю матрицу стилей такого же размера, как исходная таблица
+    styles = pd.DataFrame("", index=df.index, columns=df.columns)
+    styles.loc[is_winner, :] = (
+        "background-color: rgba(46, 204, 113, 0.2); font-weight: bold;"
+    )
+    return styles
