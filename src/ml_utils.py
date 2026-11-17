@@ -66,17 +66,29 @@ def date_trisect(df, date_column, validation_date, test_date):
     return train_sample, val_sample, test_sample
 
 
-def save_metrics_checkpoint(df, my_dict=None, folder="checkpoints"):
+def save_metrics_checkpoint(
+    metrics_df, preds_dict=None, models_dict=None, folder="checkpoints"
+):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    df.to_csv(os.path.join(folder, "model_results.csv"), index=False)
+    # сохраняю итоговую таблицу метрик в текстовый формат csv
+    metrics_df.to_csv(os.path.join(folder, "model_metrics.csv"), index=False)
 
-    if my_dict is not None:
-        with open(os.path.join(folder, "my_models.pkl"), "wb") as f:
-            pickle.dump(my_dict, f)
+    # сохраняю словарь с предсказаниями в бинарный файл
+    if preds_dict is not None:
+        with open(os.path.join(folder, "models_preds.pkl"), "wb") as f:
+            pickle.dump(preds_dict, f)
 
-    print(f"все метрики и словари успешно сохранены в папку '{folder}'")
+    # сохраняю словарь самих обученных моделей в отдельный файл
+    if models_dict is not None:
+        with open(os.path.join(folder, "trained_models.pkl"), "wb") as f:
+            pickle.dump(models_dict, f)
+
+    print(f"""Все файлы сохранены в папку '{folder}. 
+    Метрики моделей сохраены под именем 'model_metrics.csv'
+    Вероятности (кл.1) сохраенены под именем 'models_preds.pkl'
+    Обученные модели сохраенены под именем 'trained_models.pkl'""")
 
 
 def _build_trapezoid_frame(x1: float, y1: float, x2: float, y2: float) -> go.Figure:
