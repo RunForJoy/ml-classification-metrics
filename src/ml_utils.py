@@ -1,8 +1,12 @@
+# стандартная библиотека Python
+import os
+import pickle
+
+# сторонние библиотеки
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import os
-import pickle
 from sklearn.metrics import roc_auc_score, roc_curve
 
 
@@ -205,10 +209,6 @@ def plot_roc_trapezoid(x1=0.20, y1=0.45, x2=0.85, y2=0.85):
     plt.show()
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-
 def plot_roc_grid_example(y_true=None, preds_proba=None):
     """Рисует геометрическую сетку P x N на matplotlib для наглядного пояснения ROC AUC.
 
@@ -300,11 +300,6 @@ def plot_roc_grid_example(y_true=None, preds_proba=None):
     plt.show()
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.metrics import roc_auc_score, roc_curve
-
-
 def plot_models_roc_curves(
     y_true: np.ndarray,
     models_preds: dict[str, np.ndarray],
@@ -387,3 +382,167 @@ def highlight_family_winners(df):
         "background-color: rgba(46, 204, 113, 0.2); font-weight: bold;"
     )
     return styles
+
+
+####PLOTLY version####
+
+
+def _build_trapezoid_frame(x1: float, y1: float, x2: float, y2: float) -> go.Figure:
+    """Формирует базовый кадр прямоугольной трапеции с аннотациями."""
+    area = (y1 + y2) / 2 * (x2 - x1)
+    fig = go.Figure()
+
+    # Контур и заливка трапеции
+    fig.add_trace(
+        go.Scatter(
+            x=[x1, x1, x2, x2, x1],
+            y=[0, y1, y2, 0, 0],
+            fill="toself",
+            fillcolor="rgba(100, 110, 120, 0.35)",
+            line={"color": "black", "width": 2.5},
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+
+    # Зелёная пунктирная линия высоты h
+    fig.add_trace(
+        go.Scatter(
+            x=[x1, x2],
+            y=[y1, y1],
+            mode="lines",
+            line={"color": "green", "width": 2, "dash": "dash"},
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+
+    # Вершины (FPR, TPR) с переносом строки, чтобы текст не обрезался слева
+    fig.add_trace(
+        go.Scatter(
+            x=[x1, x2],
+            y=[y1, y2],
+            mode="markers+text",
+            marker={"size": 11, "color": ["#d62728", "#1f77b4"]},
+            text=[
+                f"(FPR₁={x1:.2f},<br>TPR₁={y1:.2f})",
+                f"(FPR₂={x2:.2f},<br>TPR₂={y2:.2f})",
+            ],
+            textposition=["middle left", "top right"],
+            textfont={"size": 11, "color": "black"},
+            hovertemplate="FPR: %{x:.2f}<br>TPR: %{y:.2f}<extra></extra>",
+            showlegend=False,
+        )
+    )
+
+    mid_x = (x1 + x2) / 2
+    annotations = [
+        {
+            "x": mid_x,
+            "y": y1,
+            "text": f"h = FPR₂ - FPR₁ = {x2 - x1:.2f}",
+            "showarrow": False,
+            "yshift": 12,
+            "font": {"color": "green", "size": 11},
+        },
+        {
+            "x": mid_x,
+            "y": 0.72 * y1,
+            "text": "<b>S = (a + b)/2 · h</b>",
+            "showarrow": False,
+            "font": {"color": "#b22222", "size": 11},
+        },
+        {
+            "x": mid_x,
+            "y": 0.46 * y1,
+            "text": f"<b>S = (y₁ + y₂)/2 · (x₂ - x₁) = {area:.4f}</b>",
+            "showarrow": False,
+            "font": {"color": "#4a148c", "size": 11},
+        },
+        {
+            "x": mid_x,
+            "y": 0.20 * y1,
+            "text": f"<b>S = (TPR₁ + TPR₂)/2 · (FPR₂ - FPR₁) = {area:.2f}</b>",
+            "showarrow": False,
+            "font": {"color": "#1f77b4", "size": 10},
+        },
+    ]
+
+    fig.update_layout(
+        title="Геометрический смысл расчёта ROC AUC методом трапеций",
+        xaxis={"title": "FPR (False Positive Rate)", "range": [-0.22, 1.15]},
+        yaxis={"title": "TPR (True Positive Rate)", "range": [-0.05, 1.15]},
+        annotations=annotations,
+        template="plotly_white",
+        width=820,
+        height=750,
+    )
+    return fig
+
+
+def plot_roc_trapezoid2(
+    x1: float = 0.20,
+    y1: float = 0.45,
+    x2: float = 0.85,
+    y2: float = 0.85,
+) -> go.Figure:
+    """Создает интерактивный график прямоугольной трапеции с ползунками.
+
+    Args:
+        x1: Начальное значение FPR₁ (левая граница).
+        y1: Начальное значение TPR₁ (левая высота).
+        x2: Начальное значение FPR₂ (правая граница).
+        y2: Начальное значение TPR₂ (правая высота).
+
+    Returns:
+        Объект plotly.graph_objects.Figure, готовый к отображению.
+    """
+    fig = _build_trapezoid_frame(x1, y1, x2, y2)
+
+    def _make_steps(param_name: str, values: np.ndarray) -> list[dict]:
+        steps = []
+        for val in values:
+            params = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+            params[param_name] = float(val)
+            temp = _build_trapezoid_frame(**params)
+            steps.append(
+                {
+                    "method": "update",
+                    "label": f"{val:.2f}",
+                    "args": [
+                        {
+                            "x": [getattr(t, "x", None) for t in temp.data],
+                            "y": [getattr(t, "y", None) for t in temp.data],
+                            "text": [getattr(t, "text", None) for t in temp.data],
+                        },
+                        {"annotations": temp.layout.annotations},
+                    ],
+                }
+            )
+        return steps
+
+    fig.update_layout(
+        margin={"b": 260},
+        sliders=[
+            {
+                "active": 4,
+                "currentvalue": {"prefix": "Левая граница FPR₁ (x₁): "},
+                "y": -0.15,
+                "steps": _make_steps("x1", np.linspace(0.0, 0.6, 13)),
+            },
+            {
+                "active": 5,
+                "currentvalue": {"prefix": "Левая высота TPR₁ (y₁): "},
+                "y": -0.38,
+                "steps": _make_steps("y1", np.linspace(0.2, 0.8, 13)),
+            },
+            {
+                "active": 7,
+                "currentvalue": {"prefix": "Правая высота TPR₂ (y₂): "},
+                "y": -0.61,
+                "steps": _make_steps("y2", np.linspace(0.5, 1.0, 11)),
+            },
+        ],
+    )
+    return fig
